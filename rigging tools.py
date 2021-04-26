@@ -241,10 +241,7 @@ class WM_OT_ConnectSelectedBones(Operator):
             bpy.ops.armature.duplicate(do_flip_names=False)
 
             # removes .001 from dupped bones and adds prefix
-            bone_name = bpy.context.object.data.name = i
-            stripped_name = bone_name.strip('.001')
-
-            bpy.context.object.pose.bones.get(i + '.001').name = bone_prefix + stripped_name
+            bpy.context.object.pose.bones.get(i + '.001').name = bone_prefix + i
             bpy.ops.armature.select_all(action='DESELECT')
 
         # connect bones
