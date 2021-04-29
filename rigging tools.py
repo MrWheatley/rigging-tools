@@ -2,7 +2,7 @@ bl_info = {
     "name": "Rigging Tools",
     "description": "Rigging tools that are mostly aimed at rigging exported game rigs.",
     "author": "sauce",
-    "version": (0, 0, 3),
+    "version": (0, 0, 4),
     "blender": (2, 92, 0),
     "location": "3D View > RIG Tools",
     "warning": "",  # used for warning icon and text in addons panel
@@ -401,13 +401,9 @@ class WM_OT_ConnectSelectedBones(Operator):
         # use deform or not
         if not bpy.context.scene.my_tool.my_use_deform:
             for i in selected_bones:
-                bpy.ops.pose.select_all(action='DESELECT')
-                active_object.data.bones[bone_prefix + i].select = True
                 active_object.data.bones[bone_prefix + i].use_deform = False
         else:
             for i in selected_bones:
-                bpy.ops.pose.select_all(action='DESELECT')
-                active_object.data.bones[bone_prefix + i].select = True
                 active_object.data.bones[bone_prefix + i].use_deform = True
 
         # adds ik to end of chain or not
@@ -527,6 +523,9 @@ class WM_OT_AddTargetBones(Operator):
                     bpy.ops.pose.constraint_add_with_targets(type='COPY_TRANSFORMS')
 
                     bpy.ops.pose.select_all(action='DESELECT')
+
+                    # disables use deform on generated target bones
+                    active_object.data.bones[bone_prefix + elem].use_deform = False
                 except IndexError:
                     pass
         else:
@@ -548,6 +547,9 @@ class WM_OT_AddTargetBones(Operator):
                     bpy.ops.pose.constraint_add_with_targets(type='COPY_LOCATION')
 
                     bpy.ops.pose.select_all(action='DESELECT')
+
+                    # disables use deform on generated target bones
+                    active_object.data.bones[bone_prefix + elem].use_deform = False
                 except IndexError:
                     pass
 
