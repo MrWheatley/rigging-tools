@@ -2,7 +2,7 @@ bl_info = {
     "name": "Rigging Tools",
     "description": "Rigging tools that are mostly aimed at rigging exported game rigs.",
     "author": "sauce",
-    "version": (0, 0, 2),
+    "version": (0, 0, 1),
     "blender": (2, 92, 0),
     "location": "3D View > RIG Tools",
     "warning": "",  # used for warning icon and text in addons panel
@@ -247,18 +247,13 @@ class WM_OT_ConnectSelectedBones(Operator):
 
         # gets selected bones into list
         selected_bones = get_selected_bones()
-        bpy.ops.armature.select_all(action='DESELECT')
 
-        # duplicates bones in list
+        # duplicates selected bones
+        bpy.ops.armature.duplicate(do_flip_names=False)
+
+        # gets dupped bones and adds prefix
         for i in selected_bones:
-            bpy.ops.object.mode_set(mode='POSE')
-            active_object.data.bones[i].select = True
-
-            bpy.ops.object.mode_set(mode='EDIT')
-            bpy.ops.armature.duplicate(do_flip_names=False)
-
-            # gets dupped bones and adds prefix
-            bpy.context.object.pose.bones.get(i + '.001').name = bone_prefix + i
+            bpy.context.object.pose.bones[i + '.001'].name = bone_prefix + i
             bpy.ops.armature.select_all(action='DESELECT')
 
         # connect bones
@@ -286,10 +281,6 @@ class WM_OT_ConnectSelectedBones(Operator):
                 bpy.ops.object.mode_set(mode='POSE')
                 bpy.ops.pose.select_all(action='DESELECT')
                 bpy.ops.object.mode_set(mode='EDIT')
-
-                # parents next bone to this bone
-                active_object.data.edit_bones[bone_prefix + str(selected_bones[i + 1])].parent = \
-                    active_object.data.edit_bones[bone_prefix + elem]
 
                 # make parents connected if user chooses
                 if bpy.context.scene.my_tool.my_parent_type == 'parent_CONNECTED':
@@ -486,17 +477,16 @@ class WM_OT_AddTargetBones(Operator):
         # get all bones
         all_bones = get_all_bones()
 
-        # add target bone for all bones
+        # duplicate bones
+        bpy.ops.object.mode_set(mode='POSE')
+        bpy.ops.pose.select_all(action='SELECT')
+
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.armature.duplicate(do_flip_names=False)
+
+        # gets dupped bones and adds prefix
         for i in all_bones:
-            # duplicate bones
-            bpy.ops.object.mode_set(mode='POSE')
-            active_object.data.bones[i].select = True
-
-            bpy.ops.object.mode_set(mode='EDIT')
-            bpy.ops.armature.duplicate(do_flip_names=False)
-
-            # gets dupped bones and adds prefix
-            bpy.context.object.pose.bones.get(i + '.001').name = bone_prefix + i
+            bpy.context.object.pose.bones[i + '.001'].name = bone_prefix + i
             bpy.ops.armature.select_all(action='DESELECT')
 
         # adds constraints to original bones to target bones
