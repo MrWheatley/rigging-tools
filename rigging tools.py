@@ -2,7 +2,7 @@ bl_info = {
     "name": "Rigging Tools",
     "description": "Rigging tools that are mostly aimed at rigging exported game rigs.",
     "author": "sauce",
-    "version": (0, 0, 1),
+    "version": (0, 0, 3),
     "blender": (2, 92, 0),
     "location": "3D View > RIG Tools",
     "warning": "",  # used for warning icon and text in addons panel
@@ -165,6 +165,14 @@ class MyProperties(PropertyGroup):
                ]
     )
 
+    my_parent_using: EnumProperty(
+        name="Parent Using:",
+        description="Parents generated bones to each other based on selected order, instead of their hierarchy",
+        items=[('parent_HIERARCHY', "Hierarchy", ""),
+               ('link_SELECTED', "Selected", ""),
+               ]
+    )
+
 
 # ------------------------------------------------------------------------
 #    Fuctions
@@ -248,13 +256,28 @@ class WM_OT_ConnectSelectedBones(Operator):
         # gets selected bones into list
         selected_bones = get_selected_bones()
 
-        # duplicates selected bones
-        bpy.ops.armature.duplicate(do_flip_names=False)
+        # parent based on selected or hierarchy
+        if bpy.context.scene.my_tool.my_parent_using == 'parent_HIERARCHY':
+            # duplicates selected bones
+            bpy.ops.armature.duplicate(do_flip_names=False)
 
-        # gets dupped bones and adds prefix
-        for i in selected_bones:
-            bpy.context.object.pose.bones[i + '.001'].name = bone_prefix + i
+            # gets dupped bones and adds prefix
+            for i in selected_bones:
+                bpy.context.object.pose.bones[i + '.001'].name = bone_prefix + i
+                bpy.ops.armature.select_all(action='DESELECT')
+        else:
             bpy.ops.armature.select_all(action='DESELECT')
+
+            for i in selected_bones:
+                bpy.ops.object.mode_set(mode='POSE')
+                active_object.data.bones[i].select = True
+
+                bpy.ops.object.mode_set(mode='EDIT')
+                bpy.ops.armature.duplicate(do_flip_names=False)
+
+                # gets dupped bones and adds prefix
+                bpy.context.object.pose.bones.get(i + '.001').name = bone_prefix + i
+                bpy.ops.armature.select_all(action='DESELECT')
 
         # connect bones
         for i, elem in enumerate(selected_bones):
@@ -283,10 +306,13 @@ class WM_OT_ConnectSelectedBones(Operator):
                 bpy.ops.object.mode_set(mode='EDIT')
 
                 # make parents connected if user chooses
-                if bpy.context.scene.my_tool.my_parent_type == 'parent_CONNECTED':
-                    active_object.data.edit_bones[bone_prefix + str(selected_bones[i + 1])].use_connect = True
+                if bpy.context.scene.my_tool.my_parent_using == 'parent_HIERARCHY':
+                    if bpy.context.scene.my_tool.my_parent_type == 'parent_CONNECTED':
+                        active_object.data.edit_bones[bone_prefix + str(selected_bones[i + 1])].use_connect = True
                 else:
-                    pass
+                    # parents next bone to this bone
+                    active_object.data.edit_bones[bone_prefix + str(selected_bones[i + 1])].parent = \
+                        active_object.data.edit_bones[bone_prefix + elem]
 
                 bpy.ops.armature.select_all(action='DESELECT')
             except IndexError:
@@ -328,7 +354,6 @@ class WM_OT_ConnectSelectedBones(Operator):
                         bpy.ops.object.mode_set(mode='POSE')
                     except IndexError:
                         pass
-                pass
             elif bpy.context.scene.my_tool.my_link_type == 'link_TRANSFORM':
                 # links bones with copy transform
                 for i, elem in enumerate(selected_bones):
@@ -349,7 +374,6 @@ class WM_OT_ConnectSelectedBones(Operator):
                         bpy.ops.pose.select_all(action='DESELECT')
                     except IndexError:
                         pass
-                pass
             else:
                 # links bones with copy loc & rot
                 for i, elem in enumerate(selected_bones):
@@ -371,7 +395,6 @@ class WM_OT_ConnectSelectedBones(Operator):
                         bpy.ops.pose.select_all(action='DESELECT')
                     except IndexError:
                         pass
-                pass
         else:
             bpy.ops.object.mode_set(mode='POSE')
 
@@ -396,8 +419,6 @@ class WM_OT_ConnectSelectedBones(Operator):
             bpy.context.object.data.bones.active = bpy.context.object.pose.bones[bone_prefix + selected_bones[-1]].bone
             bpy.ops.pose.ik_add(with_targets=False)
             bpy.ops.pose.select_all(action='DESELECT')
-        else:
-            pass
 
         # elongates bone or not
         if bpy.context.scene.my_tool.my_elongate_end_of_chain:
@@ -405,8 +426,6 @@ class WM_OT_ConnectSelectedBones(Operator):
             active_object.data.edit_bones[bone_prefix + selected_bones[-1]].length = \
                 active_object.data.edit_bones[bone_prefix + selected_bones[-1]].length + mytool.my_elongate_value
             bpy.ops.object.mode_set(mode='POSE')
-        else:
-            pass
 
         bpy.ops.object.mode_set(mode='POSE')
         bpy.ops.pose.select_all(action='DESELECT')
@@ -510,7 +529,6 @@ class WM_OT_AddTargetBones(Operator):
                     bpy.ops.pose.select_all(action='DESELECT')
                 except IndexError:
                     pass
-            pass
         else:
             # links bones with copy loc & rot
             for i, elem in enumerate(all_bones):
@@ -532,7 +550,6 @@ class WM_OT_AddTargetBones(Operator):
                     bpy.ops.pose.select_all(action='DESELECT')
                 except IndexError:
                     pass
-            pass
 
         bpy.ops.object.mode_set(mode='POSE')
 
@@ -599,6 +616,10 @@ class OBJECT_PT_CustomPanel(Panel):
         row = column.row()
         row.prop(mytool, "my_elongate_value")
         row.enabled = bpy.context.scene.my_tool.my_elongate_end_of_chain
+
+        row = column.row()
+        row.label(text="Parent By:")
+        row.prop(mytool, "my_parent_using", expand=True)
 
         row = column.row()
         row.prop(mytool, "my_link_bones")
