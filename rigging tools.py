@@ -2,7 +2,7 @@ bl_info = {
     "name": "Rigging Tools",
     "description": "Rigging tools that are mostly aimed at rigging exported game rigs.",
     "author": "sauce",
-    "version": (0, 0, 5),
+    "version": (0, 0, 6),
     "blender": (2, 92, 0),
     "location": "3D View > RIG Tools",
     "warning": "",  # used for warning icon and text in addons panel
@@ -320,14 +320,13 @@ class WM_OT_ConnectSelectedBones(Operator):
                 bpy.ops.pose.select_all(action='DESELECT')
                 bpy.ops.object.mode_set(mode='EDIT')
 
+                # parents next bone to this bone
+                active_object.data.edit_bones[bone_prefix + str(selected_bones[i + 1])].parent = \
+                    active_object.data.edit_bones[bone_prefix + elem]
+
                 # make parents connected if user chooses
-                if bpy.context.scene.my_tool.my_parent_using == 'parent_HIERARCHY':
-                    if bpy.context.scene.my_tool.my_parent_type == 'parent_CONNECTED':
-                        active_object.data.edit_bones[bone_prefix + str(selected_bones[i + 1])].use_connect = True
-                else:
-                    # parents next bone to this bone
-                    active_object.data.edit_bones[bone_prefix + str(selected_bones[i + 1])].parent = \
-                        active_object.data.edit_bones[bone_prefix + elem]
+                if bpy.context.scene.my_tool.my_parent_type == 'parent_CONNECTED':
+                    active_object.data.edit_bones[bone_prefix + str(selected_bones[i + 1])].use_connect = True
 
                 bpy.ops.armature.select_all(action='DESELECT')
             except IndexError:
