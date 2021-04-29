@@ -2,7 +2,7 @@ bl_info = {
     "name": "Rigging Tools",
     "description": "Rigging tools that are mostly aimed at rigging exported game rigs.",
     "author": "sauce",
-    "version": (0, 0, 4),
+    "version": (0, 0, 5),
     "blender": (2, 92, 0),
     "location": "3D View > RIG Tools",
     "warning": "",  # used for warning icon and text in addons panel
@@ -116,13 +116,6 @@ class MyProperties(PropertyGroup):
         maxlen=1024,
     )
 
-    my_set_parent_value: StringProperty(
-        name="Parent:",
-        description="Set parent of selected bone",
-        default="",
-        maxlen=1024,
-    )
-
     my_bone_list_path: StringProperty(
         name="Bone List:",
         description="Choose a directory:",
@@ -189,6 +182,28 @@ def get_all_bones():
     all_bones = get_selected_bones()
     bpy.ops.armature.select_all(action='DESELECT')
     return all_bones
+
+
+# bone drop down
+def arma_items(self, context):
+    obs = []
+    for ob in context.scene.objects:
+        if ob.type == 'ARMATURE':
+            obs.append((ob.name, ob.name, ""))
+    return obs
+
+def arma_upd(self, context):
+    self.arma_coll.clear()
+    for ob in context.scene.objects:
+        if ob.type == 'ARMATURE':
+            item = self.arma_coll.add()
+            item.name = ob.name
+
+def bone_items(self, context):
+    arma = context.scene.objects.get(self.arma)
+    if arma is None:
+        return
+    return [(bone.name, bone.name, "") for bone in arma.data.bones]
 
 # ------------------------------------------------------------------------
 #    Operators
@@ -443,7 +458,7 @@ class WM_OT_SetParent(Operator):
         for i in selected_bones:
             bpy.ops.armature.select_all(action='DESELECT')
             active_object.data.edit_bones[i].parent = \
-                active_object.data.edit_bones[mytool.my_set_parent_value]
+                active_object.data.edit_bones[bpy.context.scene.bone_name]
 
         bpy.ops.object.mode_set(mode='POSE')
 
@@ -637,7 +652,8 @@ class OBJECT_PT_CustomPanel(Panel):
 
         row = column.row()
         row.label(text="Parent:")
-        row.prop(mytool, "my_set_parent_value", text="")
+
+        row.prop_search(scene, "bone_name", bpy.context.active_object.data, "bones", text='')
 
         row = column.row()
         row.operator("wm.clear_parent", icon='X')
@@ -680,6 +696,9 @@ def register():
     for cls in classes:
         register_class(cls)
 
+    bpy.types.Scene.arma_name = bpy.props.StringProperty()
+    bpy.types.Scene.bone_name = bpy.props.StringProperty()
+
     bpy.types.Scene.my_tool = PointerProperty(type=MyProperties)
 
 
@@ -688,6 +707,9 @@ def unregister():
     for cls in reversed(classes):
         unregister_class(cls)
     del bpy.types.Scene.my_tool
+
+    del bpy.types.Scene.arma_name
+    del bpy.types.Scene.bone_name
 
 
 if __name__ == "__main__":
