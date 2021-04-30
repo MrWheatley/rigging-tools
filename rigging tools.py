@@ -2,7 +2,7 @@ bl_info = {
     "name": "Rigging Tools",
     "description": "Rigging tools that are mostly aimed at rigging exported game rigs.",
     "author": "sauce",
-    "version": (0, 0, 6),
+    "version": (0, 0, 7),
     "blender": (2, 92, 0),
     "location": "3D View > RIG Tools",
     "warning": "",  # used for warning icon and text in addons panel
@@ -184,7 +184,7 @@ def get_all_bones():
     return all_bones
 
 
-# bone drop down
+# bones for drop down
 def arma_items(self, context):
     obs = []
     for ob in context.scene.objects:
@@ -224,8 +224,7 @@ class WM_OT_DeleteListedBones(Operator):
         bpy.ops.armature.select_all(action='DESELECT')
 
         # get bones from list
-        bone_file_path = mytool.my_bone_list_path
-        opened_file = open(bone_file_path, "r")
+        opened_file = open(mytool.my_bone_list_path, "r")
         bone_list = opened_file.readlines()
 
         # removes \n
@@ -236,14 +235,13 @@ class WM_OT_DeleteListedBones(Operator):
         all_bones = get_all_bones()
 
         # compares all bones list to bone list and only keeps matching bones
-        bone_list_compared = set(bone_list_formatted) & set(all_bones)
-        bone_list_use_formatted = list(bone_list_compared)
+        bone_list_formatted = list(set(bone_list_formatted) & set(all_bones))
 
         bpy.ops.object.mode_set(mode='POSE')
         bpy.ops.pose.select_all(action='DESELECT')
 
         # delete bones using list
-        for i in bone_list_use_formatted:
+        for i in bone_list_formatted:
             active_object.data.bones[i].select = True
 
         bpy.ops.object.mode_set(mode='EDIT')
@@ -301,9 +299,9 @@ class WM_OT_ConnectSelectedBones(Operator):
                 bpy.ops.object.mode_set(mode='POSE')
                 active_object.data.bones[str(selected_bones[i+1])].select_head = True
                 bpy.ops.object.mode_set(mode='EDIT')
+                bpy.ops.view3d.snap_cursor_to_selected()
 
                 # snaps current bone in list to 3d cusor
-                bpy.ops.view3d.snap_cursor_to_selected()
                 bpy.ops.armature.select_all(action='DESELECT')
                 bpy.ops.object.mode_set(mode='POSE')
                 active_object.data.bones[bone_prefix + elem].select_tail = True
@@ -333,15 +331,15 @@ class WM_OT_ConnectSelectedBones(Operator):
                 pass
 
         # set roll from original bone
-        for i, elem in enumerate(selected_bones):
+        for i in selected_bones:
             try:
                 bpy.ops.object.mode_set(mode='POSE')
                 bpy.ops.pose.select_all(action='DESELECT')
 
                 # set roll of new bone to original bone
-                active_object.data.bones[bone_prefix + elem].select = True
-                active_object.data.bones[elem].select = True
-                bpy.context.object.data.bones.active = bpy.context.object.pose.bones[elem].bone
+                active_object.data.bones[bone_prefix + i].select = True
+                active_object.data.bones[i].select = True
+                bpy.context.object.data.bones.active = bpy.context.object.pose.bones[i].bone
 
                 bpy.ops.object.mode_set(mode='EDIT')
 
@@ -354,15 +352,15 @@ class WM_OT_ConnectSelectedBones(Operator):
         if bpy.context.scene.my_tool.my_link_bones:
             if bpy.context.scene.my_tool.my_link_type == 'link_PARENTS':
                 # links bones with parenting
-                for i, elem in enumerate(selected_bones):
+                for i in selected_bones:
                     try:
                         bpy.ops.object.mode_set(mode='POSE')
                         bpy.ops.pose.select_all(action='DESELECT')
                         bpy.ops.object.mode_set(mode='EDIT')
 
                         # parents original bone to new bone
-                        active_object.data.edit_bones[elem].parent = \
-                            active_object.data.edit_bones[bone_prefix + elem]
+                        active_object.data.edit_bones[i].parent = \
+                            active_object.data.edit_bones[bone_prefix + i]
 
                         bpy.ops.armature.select_all(action='DESELECT')
                         bpy.ops.object.mode_set(mode='POSE')
@@ -370,15 +368,15 @@ class WM_OT_ConnectSelectedBones(Operator):
                         pass
             elif bpy.context.scene.my_tool.my_link_type == 'link_TRANSFORM':
                 # links bones with copy transform
-                for i, elem in enumerate(selected_bones):
+                for i in selected_bones:
                     try:
                         bpy.ops.object.mode_set(mode='POSE')
                         bpy.ops.pose.select_all(action='DESELECT')
 
                         # links bones with copy transform
-                        active_object.data.bones[bone_prefix + elem].select = True
-                        active_object.data.bones[elem].select = True
-                        bpy.context.object.data.bones.active = bpy.context.object.pose.bones[elem].bone
+                        active_object.data.bones[bone_prefix + i].select = True
+                        active_object.data.bones[i].select = True
+                        bpy.context.object.data.bones.active = bpy.context.object.pose.bones[i].bone
 
                         bpy.ops.object.mode_set(mode='EDIT')
                         bpy.ops.object.mode_set(mode='POSE')
@@ -390,15 +388,15 @@ class WM_OT_ConnectSelectedBones(Operator):
                         pass
             else:
                 # links bones with copy loc & rot
-                for i, elem in enumerate(selected_bones):
+                for i in selected_bones:
                     try:
                         bpy.ops.object.mode_set(mode='POSE')
                         bpy.ops.pose.select_all(action='DESELECT')
 
                         # links bones with copy transform
-                        active_object.data.bones[bone_prefix + elem].select = True
-                        active_object.data.bones[elem].select = True
-                        bpy.context.object.data.bones.active = bpy.context.object.pose.bones[elem].bone
+                        active_object.data.bones[bone_prefix + i].select = True
+                        active_object.data.bones[i].select = True
+                        bpy.context.object.data.bones.active = bpy.context.object.pose.bones[i].bone
 
                         bpy.ops.object.mode_set(mode='EDIT')
                         bpy.ops.object.mode_set(mode='POSE')
@@ -430,7 +428,7 @@ class WM_OT_ConnectSelectedBones(Operator):
             bpy.ops.pose.ik_add(with_targets=False)
             bpy.ops.pose.select_all(action='DESELECT')
 
-        # elongates bone or not
+        # elongates last bone or not
         if bpy.context.scene.my_tool.my_elongate_end_of_chain:
             bpy.ops.object.mode_set(mode='EDIT')
             active_object.data.edit_bones[bone_prefix + selected_bones[-1]].length = \
@@ -448,11 +446,9 @@ class WM_OT_SetParent(Operator):
     bl_idname = "wm.set_parent"
 
     def execute(self, context):
-        scene = context.scene
-        mytool = scene.my_tool
         active_object = bpy.context.active_object
         bpy.ops.object.mode_set(mode='EDIT')
-        selected_bones = [obj.name for obj in bpy.context.selected_bones]
+        selected_bones = get_selected_bones()
 
         for i in selected_bones:
             bpy.ops.armature.select_all(action='DESELECT')
@@ -471,7 +467,7 @@ class WM_OT_ClearParent(Operator):
     def execute(self, context):
         active_object = bpy.context.active_object
         bpy.ops.object.mode_set(mode='EDIT')
-        selected_bones = [obj.name for obj in bpy.context.selected_bones]
+        selected_bones = get_selected_bones()
 
         for i in selected_bones:
             bpy.ops.object.mode_set(mode='POSE')
@@ -521,15 +517,15 @@ class WM_OT_AddTargetBones(Operator):
         # adds constraints to original bones to target bones
         if bpy.context.scene.my_tool.my_target_link_type == 'link_TRANSFORM':
             # links bones with copy transform
-            for i, elem in enumerate(all_bones):
+            for i in all_bones:
                 try:
                     bpy.ops.object.mode_set(mode='POSE')
                     bpy.ops.pose.select_all(action='DESELECT')
 
                     # links bones with copy transform
-                    active_object.data.bones[bone_prefix + elem].select = True
-                    active_object.data.bones[elem].select = True
-                    bpy.context.object.data.bones.active = bpy.context.object.pose.bones[elem].bone
+                    active_object.data.bones[bone_prefix + i].select = True
+                    active_object.data.bones[i].select = True
+                    bpy.context.object.data.bones.active = bpy.context.object.pose.bones[i].bone
 
                     bpy.ops.object.mode_set(mode='EDIT')
                     bpy.ops.object.mode_set(mode='POSE')
@@ -539,20 +535,20 @@ class WM_OT_AddTargetBones(Operator):
                     bpy.ops.pose.select_all(action='DESELECT')
 
                     # disables use deform on generated target bones
-                    active_object.data.bones[bone_prefix + elem].use_deform = False
+                    active_object.data.bones[bone_prefix + i].use_deform = False
                 except IndexError:
                     pass
         else:
             # links bones with copy loc & rot
-            for i, elem in enumerate(all_bones):
+            for i in all_bones:
                 try:
                     bpy.ops.object.mode_set(mode='POSE')
                     bpy.ops.pose.select_all(action='DESELECT')
 
                     # links bones with copy transform
-                    active_object.data.bones[bone_prefix + elem].select = True
-                    active_object.data.bones[elem].select = True
-                    bpy.context.object.data.bones.active = bpy.context.object.pose.bones[elem].bone
+                    active_object.data.bones[bone_prefix + i].select = True
+                    active_object.data.bones[i].select = True
+                    bpy.context.object.data.bones.active = bpy.context.object.pose.bones[i].bone
 
                     bpy.ops.object.mode_set(mode='EDIT')
                     bpy.ops.object.mode_set(mode='POSE')
@@ -563,7 +559,7 @@ class WM_OT_AddTargetBones(Operator):
                     bpy.ops.pose.select_all(action='DESELECT')
 
                     # disables use deform on generated target bones
-                    active_object.data.bones[bone_prefix + elem].use_deform = False
+                    active_object.data.bones[bone_prefix + i].use_deform = False
                 except IndexError:
                     pass
 
