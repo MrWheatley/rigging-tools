@@ -2,7 +2,7 @@ bl_info = {
     "name": "Rigging Tools",
     "description": "Rigging tools that are mostly aimed at rigging exported game rigs.",
     "author": "sauce",
-    "version": (0, 0, 7),
+    "version": (0, 0, 8),
     "blender": (2, 92, 0),
     "location": "3D View > RIG Tools",
     "warning": "",  # used for warning icon and text in addons panel
@@ -109,10 +109,10 @@ class MyProperties(PropertyGroup):
         maxlen=1024,
     )
 
-    my_target_bone_prefix: StringProperty(
-        name="Bone Prefix:",
-        description="The prefix that gets added to the target bones",
-        default="TRGT-",
+    my_target_weapon_armature: StringProperty(
+        name="",
+        description="The armature that gets targeted",
+        default="",
         maxlen=1024,
     )
 
@@ -122,6 +122,13 @@ class MyProperties(PropertyGroup):
         default="",
         maxlen=1024,
         subtype='FILE_PATH'
+    )
+
+    my_target_bone_prefix: StringProperty(
+        name="Bone Prefix:",
+        description="The prefix that gets added to the target bones",
+        default="TRGT-",
+        maxlen=1024,
     )
 
     my_enum: EnumProperty(
@@ -567,6 +574,45 @@ class WM_OT_AddTargetBones(Operator):
 
         return {'FINISHED'}
 
+class WM_OT_LinkArmToWeaponArmature(Operator):
+    """Links bones in an armature to another with the same name"""
+    bl_label = "Link Arm to Weapon Armature"
+    bl_idname = "wm.link_arm_to_weapon_armature"
+
+    def execute(self, context):
+        active_object = bpy.context.active_object
+
+        bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.select_all(action='DESELECT')
+
+        # makes armature in text field active
+        bpy.context.view_layer.objects.active = bpy.data.objects[bpy.context.scene.target_arm_armature]
+
+        # get all bones
+        all_bones = get_all_bones()
+        bpy.ops.object.mode_set(mode='POSE')
+
+        for i in all_bones:
+            try:
+                active_object.data.bones[i].select = True
+                bpy.context.object.data.bones.active = bpy.context.object.pose.bones[i].bone
+                bpy.ops.object.mode_set(mode='EDIT')
+                bpy.ops.object.mode_set(mode='POSE')
+
+                # adds copy transform
+                bpy.ops.pose.constraint_add(type='COPY_TRANSFORMS')
+
+                # sets target and sub target
+                bpy.context.object.pose.bones[i].constraints["Copy Transforms"].target = \
+                    bpy.data.objects[bpy.context.scene.target_weapon_armature]
+
+                bpy.context.object.pose.bones[i].constraints["Copy Transforms"].subtarget = i
+            # if a bone is not found, skips it
+            except:
+                continue
+
+        return {'FINISHED'}
+
 # ------------------------------------------------------------------------
 #    Panel
 # ------------------------------------------------------------------------
@@ -647,7 +693,6 @@ class OBJECT_PT_CustomPanel(Panel):
 
         row = column.row()
         row.label(text="Parent:")
-
         row.prop_search(scene, "bone_name", bpy.context.active_object.data, "bones", text='')
 
         row = column.row()
@@ -667,6 +712,20 @@ class OBJECT_PT_CustomPanel(Panel):
         col = column.column()
         col.operator("wm.add_target_bones", icon='ADD', text='Add & Link Target Bones')
 
+        col = column.column()
+        col.separator()
+
+        row = column.row()
+        row.label(text="Base Armature:")
+        row.prop_search(scene, "target_arm_armature", bpy.data, "armatures", text='')
+
+        row = column.row()
+        row.label(text="Target Armature:")
+        row.prop_search(scene, "target_weapon_armature", bpy.data, "armatures", text='')
+
+        col = column.column()
+        col.operator("wm.link_arm_to_weapon_armature", icon='RESTRICT_INSTANCED_OFF', text='Link Bones from Armatures')
+
         # layout.menu(OBJECT_MT_CustomMenu.bl_idname, text="Presets", icon="SCENE")
         # layout.separator()
 
@@ -682,6 +741,7 @@ classes = (
     WM_OT_SetParent,
     WM_OT_ClearParent,
     WM_OT_AddTargetBones,
+    WM_OT_LinkArmToWeaponArmature,
     OBJECT_PT_CustomPanel
 )
 
@@ -693,6 +753,8 @@ def register():
 
     bpy.types.Scene.arma_name = bpy.props.StringProperty()
     bpy.types.Scene.bone_name = bpy.props.StringProperty()
+    bpy.types.Scene.target_arm_armature = bpy.props.StringProperty()
+    bpy.types.Scene.target_weapon_armature = bpy.props.StringProperty()
 
     bpy.types.Scene.my_tool = PointerProperty(type=MyProperties)
 
@@ -705,6 +767,8 @@ def unregister():
 
     del bpy.types.Scene.arma_name
     del bpy.types.Scene.bone_name
+    del bpy.types.Scene.target_arm_armature
+    del bpy.types.Scene.target_weapon_armature
 
 
 if __name__ == "__main__":
