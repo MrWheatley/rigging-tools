@@ -594,6 +594,7 @@ class WM_OT_LinkArmToWeaponArmature(Operator):
 
         for i in all_bones:
             try:
+                bpy.ops.pose.select_all(action='DESELECT')
                 active_object.data.bones[i].select = True
                 bpy.context.object.data.bones.active = bpy.context.object.pose.bones[i].bone
                 bpy.ops.object.mode_set(mode='EDIT')
@@ -607,9 +608,13 @@ class WM_OT_LinkArmToWeaponArmature(Operator):
                     bpy.data.objects[bpy.context.scene.target_weapon_armature]
 
                 bpy.context.object.pose.bones[i].constraints["Copy Transforms"].subtarget = i
+                bpy.ops.pose.select_all(action='DESELECT')
             # if a bone is not found, skips it
             except:
                 continue
+                
+        bpy.ops.pose.select_all(action='DESELECT')
+        bpy.ops.object.mode_set(mode='OBJECT')
 
         return {'FINISHED'}
 
