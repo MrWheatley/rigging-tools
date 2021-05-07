@@ -2,7 +2,7 @@ bl_info = {
     "name": "Rigging Tools",
     "description": "Rigging tools that are mostly aimed at rigging exported game rigs.",
     "author": "sauce",
-    "version": (0, 0, 8),
+    "version": (0, 0, 9),
     "blender": (2, 92, 0),
     "location": "3D View > RIG Tools",
     "warning": "",  # used for warning icon and text in addons panel
@@ -585,14 +585,26 @@ class WM_OT_LinkArmToWeaponArmature(Operator):
         bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.select_all(action='DESELECT')
 
-        # makes armature in text field active
+        # makes base armature active and gets all bones
+        bpy.context.view_layer.objects.active = bpy.data.objects[bpy.context.scene.target_arm_armature]
+        all_bones_base = get_all_bones()
+        bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.select_all(action='DESELECT')
+
+        # makes target armature active and gets all bones
+        bpy.context.view_layer.objects.active = bpy.data.objects[bpy.context.scene.target_weapon_armature]
+        all_bones_target = get_all_bones()
+
+        # only keeps bones that are in both armatures
+        bone_list_formatted = list(set(all_bones_base) & set(all_bones_target))
+        
+        bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.select_all(action='DESELECT')
         bpy.context.view_layer.objects.active = bpy.data.objects[bpy.context.scene.target_arm_armature]
 
-        # get all bones
-        all_bones = get_all_bones()
         bpy.ops.object.mode_set(mode='POSE')
 
-        for i in all_bones:
+        for i in bone_list_formatted:
             try:
                 bpy.ops.pose.select_all(action='DESELECT')
                 active_object.data.bones[i].select = True
